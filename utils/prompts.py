@@ -1,14 +1,10 @@
 from datetime import datetime
 
-
 def generate_search_queries_prompt(max_iterations=3):
-    """ Generates the search queries prompt for the given question.
-    Args: question (str): The question to generate the search queries prompt for
-    Returns: str: The search queries prompt for the given question
-    """
-
-    return f'Write {max_iterations} google search queries to search online that form a diverse and entertraining corpus about the following topic: '+'"{question}"' \
-           f'You must respond with a list of strings in the following format, as a python list of strings: ["query 1", "query 2", "query 3"].'
+    return f'You are an expert journalist.' \
+           f'You are given an article topic: ' +'"{question}"' \
+           f' Write {max_iterations} google search queries to search online that form a diverse and entertraining corpus about it.' \
+           f'You must respond with a single list of {max_iterations} strings in the following python format: ["query 1", "query 2", "query 3"].'
             #f'Use the current date if needed: {datetime.now().strftime("%B %d, %Y")}.\n' \
 
 
@@ -56,17 +52,8 @@ def generate_resource_report_prompt(question, context, report_format="apa", tota
            'The report should have a minimum length of 700 words.\n' \
             'You MUST include all relevant source urls.'
 
-def generate_custom_report_prompt(query_prompt, context, report_format="apa", total_words=1000):
-    return f'"{context}"\n\n{query_prompt}'
-
 
 def generate_outline_report_prompt(question, context, report_format="apa", total_words=1000):
-    """ Generates the outline report prompt for the given question and research summary.
-    Args: question (str): The question to generate the outline report prompt for
-            research_summary (str): The research summary to generate the outline report prompt for
-    Returns: str: The outline report prompt for the given question and research summary
-    """
-
     return f'"""{context}""" Using the above information, generate an outline for a research report in Markdown syntax' \
            f' for the following question or topic: "{question}". The outline should provide a well-structured framework' \
            ' for the research report, including the main sections, subsections, and key points to be covered.' \
@@ -79,30 +66,27 @@ def get_report_by_type(report_type):
         'research_report': generate_report_prompt,
         'resource_report': generate_resource_report_prompt,
         'outline_report': generate_outline_report_prompt,
-        'custom_report': generate_custom_report_prompt
     }
     return report_type_mapping[report_type]
 
 
 def auto_agent_instructions():
     return """
-        I will describe to you a topic that involves researching a given subject, regardless of its complexity or the availability of a definitive answer. The research is conducted by a specific Agent, defined by its type and role, with each Agent requiring distinct instructions.
-        The Agent is determined by the field of the topic and the specific name of the Agent that could be utilized to research the topic provided. Agents are categorized by their area of expertise, and each Agent type is associated with a single corresponding emoji.
-        Your answer will be to create the best Agent description, related to the given task.
+        I will describe to you a topic that involves researching a given subject, regardless of its complexity or the availability of a definitive answer. The research is conducted by a specific Agent, defined by its emoji, type and role, with each Agent requiring distinct instructions.
+        The Agent will be utilized to research the topic provided. Agents are categorized by their area of expertise, and each Agent type is associated with a single corresponding emoji.
+        Your answer will be to create the best Agent emoji, name, and description, related to the given task.
+        You will respond with a single list of 3 stings in the following python format: ["emoji", "name", "description"].
 
         examples:
 
         topic: "should I invest in apple stocks?"
-        answer: "💰 Finance Agent
-        You are a seasoned finance analyst AI assistant. Your primary goal is to compose comprehensive, astute, impartial, and methodically arranged financial reports based on provided data and trends."
+        answer: ["💰", "Finance Agent", "You are a seasoned finance analyst AI assistant. Your primary goal is to compose comprehensive, astute, impartial, and methodically arranged financial reports based on provided data and trends."]
         
-        topic: "could reselling sneakers become profitable?"
-        answer: "📈 Business Analyst Agent
-        You are an experienced AI business analyst assistant. Your main objective is to produce comprehensive, insightful, impartial, and systematically structured business reports based on provided business data, market trends, and strategic analysis."
+        topic: "Could reselling sneakers become profitable?"
+        answer: ["📈", "Business Analyst Agent", "You are an experienced AI business analyst assistant. Your main objective is to produce comprehensive, insightful, impartial, and systematically structured business reports based on provided business data, market trends, and strategic analysis."]
         
-        topic: "what are the most interesting sites in Tel Aviv?"
-        answer: "🌍 Travel Agent
-        You are a world-travelled AI tour guide assistant. Your main purpose is to draft engaging, insightful, unbiased, and well-structured travel reports on given locations, including history, attractions, and cultural insights."
+        topic: "most interesting sites in Tel Aviv"
+        answer: ["🌍", "Travel Agent", "You are a world-travelled AI tour guide assistant. Your main purpose is to draft engaging, insightful, unbiased, and well-structured travel reports on given locations, including history, attractions, and cultural insights."]
     """
 
 def generate_summary_prompt(query, data):

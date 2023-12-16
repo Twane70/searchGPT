@@ -4,7 +4,12 @@ from langchain.retrievers import ArxivRetriever
 from functools import partial
 import requests
 from bs4 import BeautifulSoup
+from duckduckgo_search import AsyncDDGS
 
+async def get_results(query):
+    async with AsyncDDGS() as ddgs:
+        results = [r async for r in ddgs.text(query, max_results=3)]
+        return results
 
 class Scraper:
     """
@@ -106,7 +111,11 @@ class Scraper:
         text = ""
         tags = ['p', 'h1', 'h2', 'h3', 'h4', 'h5']
         for element in soup.find_all(tags):  # Find all the <p> elements
-            text += element.text + "\n"
+            # text += element.text + "\n"
+            if element.name.startswith('h'):
+                text += f"{'#' * (int(element.name[1:]) + 1)} {element.get_text()}\n"
+            else:
+                text += f"{element.get_text()}\n"
         return text
 
 

@@ -2,7 +2,7 @@ from langchain.chat_models import ChatOpenAI
 from langchain.schema import StrOutputParser
 from langchain.schema.runnable import Runnable
 from langchain.schema.runnable.config import RunnableConfig
-from langchain_core.runnables import RunnablePassthrough
+#from langchain_core.runnables import RunnablePassthrough
 #from langchain.output_parsers.json import SimpleJsonOutputParser
 
 import chainlit as cl
@@ -10,14 +10,20 @@ from operator import itemgetter
 import json
 
 from utils.agent import choose_agent, queries_agent
-from utils.scrapy import get_results, fetch_all, parse_content
-from utils.researcher.scraper import get_context_by_urls
+from utils.researcher.scraper import get_results, get_context_by_urls
 
 fast_model = ChatOpenAI(streaming=True, temperature=0.0, model_name="gpt-3.5-turbo")
+smart_model = ChatOpenAI(streaming=True, temperature=0.0, model_name="gpt-4-1106-preview")
 
 agent_chain = (
     choose_agent()
     | fast_model
+    | StrOutputParser()
+)
+
+text_chain = (
+    choose_agent()
+    | smart_model
     | StrOutputParser()
 )
 
@@ -51,21 +57,21 @@ async def on_message(message: cl.Message):
     ):
         await msg.stream_token(chunk)
 
-    await msg.send()
     queries = json.loads(msg.content.replace("\n", ""))
-    print(queries)
-    msg.content = '\n'.join([f'**{query}**\n'+' - \n'*4 for query in queries])
+    msg.content = ''
+    #msg.content = '\n'.join([f'**{query}**\n'+' - \n'*4 for query in queries])
     await msg.update()
 
     sources = []
-    msg.content=''
+    msg = cl.Message(content='', disable_human_feedback=True)
+    await msg.send()
     for query in queries:
         source = await get_results(query)
         sources += [{'url':website['href'], 'title':website['title']} for website in source]
         msg.content += f'## **{query}**\n'+'\n'.join(f' - [{website['title']}]({website['href']})' + '\n\n' for website in source)
         await msg.update()
-    #content = await fetch_all(sources)
-    #content = '\n\n'.join([parse_content(html) for html in content])
-    content = await get_context_by_urls(main_query, sources)
-    msg = cl.Message(content=content, disable_human_feedback=True)
-    await msg.send()
+    msg_chuncks = cl.Message(content='', disable_human_feedback=True)
+    await msg_chuncks.send()
+    content = await get_context_by_urls(' '.join(queries+[main_query]), sources)
+    msg_chuncks.content = content
+    await msg_chuncks.update()
