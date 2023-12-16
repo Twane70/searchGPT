@@ -16,7 +16,7 @@ def choose_agent():
             ),
         ]
     )
-#Default Agent : "You are an AI critical thinker research assistant. Your sole purpose is to write well written, critically acclaimed, objective and structured reports on given text."
+# Default Agent : "You are an AI critical thinker research assistant. Your sole purpose is to write well written, critically acclaimed, objective and structured reports on given text."
 
 def queries_agent():
     return ChatPromptTemplate.from_messages(

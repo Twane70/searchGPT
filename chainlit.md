@@ -1,3 +1,3 @@
 # Welcome to BuzzGPT! 🚀🤖
 
-salu sava?
+Quel sujet vous intéresse ?

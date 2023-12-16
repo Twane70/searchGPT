@@ -7,7 +7,7 @@ def generate_search_queries_prompt(max_iterations=3):
     Returns: str: The search queries prompt for the given question
     """
 
-    return f'Write {max_iterations} google search queries to search online that form an objective opinion and entertraining corpus from the following topic: '+'"{question}"' \
+    return f'Write {max_iterations} google search queries to search online that form a diverse and entertraining corpus about the following topic: '+'"{question}"' \
            f'You must respond with a list of strings in the following format, as a python list of strings: ["query 1", "query 2", "query 3"].'
             #f'Use the current date if needed: {datetime.now().strftime("%B %d, %Y")}.\n' \
 
