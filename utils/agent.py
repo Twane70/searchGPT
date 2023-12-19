@@ -1,6 +1,6 @@
 import json
 from langchain.prompts import ChatPromptTemplate
-from utils.prompts import auto_agent_instructions, generate_search_queries_prompt
+from utils.prompts import auto_agent_instructions, generate_search_queries_prompt, storytelling_instructions
 
 
 def choose_agent():
@@ -28,6 +28,20 @@ def queries_agent():
             (
                 "human", 
                 generate_search_queries_prompt(), #question
+            ),
+        ]
+    )
+
+def write_agent():
+    return ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                '{role}\n' + storytelling_instructions(),
+            ),
+            (
+                "human", 
+                'topic: {main_query}\n' + 'subtopics: {sub_queries}\n'+'context:\n```\n{context}\n```',
             ),
         ]
     )

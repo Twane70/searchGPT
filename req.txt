@@ -3,5 +3,5 @@ chainlit
 langchain
 duckduckgo-search
 bs4
-aiohttp
 simsimd
+pymupdf

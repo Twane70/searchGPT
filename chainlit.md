@@ -1,3 +1,2 @@
-# Welcome to BuzzGPT! 🚀🤖
-
-Quel sujet vous intéresse ?
+## Welcome to TrashGPT
+What topic should we explore?

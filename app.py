@@ -8,12 +8,23 @@ from langchain.schema.runnable.config import RunnableConfig
 import chainlit as cl
 from operator import itemgetter
 import json
+from typing import Optional
 
-from utils.agent import choose_agent, queries_agent
+from utils.agent import choose_agent, queries_agent, write_agent
 from utils.researcher.scraper import get_results, get_context_by_urls
+from utils.emoji import get_png_url
 
-fast_model = ChatOpenAI(streaming=True, temperature=0.0, model_name="gpt-3.5-turbo")
-smart_model = ChatOpenAI(streaming=True, temperature=0.0, model_name="gpt-4-1106-preview")
+fast_model = ChatOpenAI(streaming=True, temperature=0.2, model_name="gpt-3.5-turbo")
+smart_model = ChatOpenAI(streaming=True, temperature=0.3, model_name="gpt-4-1106-preview")
+
+@cl.password_auth_callback
+def auth_callback(username: str, password: str) -> Optional[cl.AppUser]:
+  # Fetch the user matching username from your database
+  # and compare the hashed password with the value stored in the database
+  if (username, password) == ("admin", "admin"):
+    return cl.AppUser(username="admin", role="ADMIN", provider="credentials")
+  else:
+    return None
 
 agent_chain = (
     choose_agent()
@@ -21,11 +32,18 @@ agent_chain = (
     | StrOutputParser()
 )
 
-text_chain = (
-    choose_agent()
+sub_queries_chain = (
+    queries_agent()
     | smart_model
     | StrOutputParser()
 )
+
+write_chain = (
+    write_agent()
+    | smart_model
+    | StrOutputParser()
+)
+
 
 def _sanitize(rep: str):
     context = json.loads(rep)
@@ -43,35 +61,57 @@ async def on_chat_start():
     )
     cl.user_session.set("runnable", runnable)
 
+@cl.author_rename
+def rename(orig_author: str):
+    rename_dict = {"Chatbot": "Assistant"}
+    return rename_dict.get(orig_author, orig_author)
 
 @cl.on_message
 async def on_message(message: cl.Message):
-    runnable = cl.user_session.get("runnable")  # type: Runnable
+    # runnable = cl.user_session.get("runnable")  # type: Runnable
     main_query = message.content
 
-    msg = cl.Message(content="", disable_human_feedback=True)
+    msg_sources = cl.Message(content='', author='Search', disable_human_feedback=True)
+    await msg_sources.send()
 
-    async for chunk in runnable.astream(
-        {"question": main_query},
-        config=RunnableConfig(callbacks=[cl.LangchainCallbackHandler()]),
-    ):
-        await msg.stream_token(chunk)
+    role = agent_chain.invoke({'question': main_query})
+    role = json.loads(role)
 
-    queries = json.loads(msg.content.replace("\n", ""))
-    msg.content = ''
-    #msg.content = '\n'.join([f'**{query}**\n'+' - \n'*4 for query in queries])
-    await msg.update()
+    queries = sub_queries_chain.invoke({'question': main_query, 'role': role})
+    queries = json.loads(queries)
 
     sources = []
-    msg = cl.Message(content='', disable_human_feedback=True)
-    await msg.send()
     for query in queries:
         source = await get_results(query)
         sources += [{'url':website['href'], 'title':website['title']} for website in source]
-        msg.content += f'## **{query}**\n'+'\n'.join(f' - [{website['title']}]({website['href']})' + '\n\n' for website in source)
-        await msg.update()
-    msg_chuncks = cl.Message(content='', disable_human_feedback=True)
+        msg_sources.content += f'## **{query.capitalize()}**\n'+'\n'.join(f' - [{website['title']}]({website['href']})' + '\n\n' for website in source)
+        await msg_sources.update()
+
+    await cl.Avatar(name='Web Search', url='./public/web.png').send()
+    msg_chuncks = cl.Message(content='', author='Web Search', disable_human_feedback=True)
     await msg_chuncks.send()
-    content = await get_context_by_urls(' '.join(queries+[main_query]), sources)
-    msg_chuncks.content = content
-    await msg_chuncks.update()
+
+    context_chuncks = await get_context_by_urls(', '.join(queries+[main_query]), sources)
+    for id, chunk in enumerate(context_chuncks):
+        name_author = f'Source {id+1}'
+        await cl.Avatar(name=name_author, url='./public/web.png').send()
+        msg_chuncks = cl.Message(content=chunk, author=name_author, disable_human_feedback=True)
+        await msg_chuncks.send()
+    context = '\n'.join(context_chuncks)
+
+    avat = get_png_url(role[0])
+    await cl.Avatar(name=role[1], url=avat).send()
+
+    #write
+    msg_write = cl.Message(content="", author=role[1], disable_human_feedback=True)
+    await msg_write.send()
+
+    async for chunk in write_chain.astream(
+        {'main_query': main_query,
+        'sub_queries': ', '.join(queries),
+        'context': context,
+        'role': role[-1]},
+        #config=RunnableConfig(callbacks=[cl.LangchainCallbackHandler()]),
+    ):
+        await msg_write.stream_token(chunk)
+    await msg_write.update()
