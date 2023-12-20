@@ -22,7 +22,7 @@ def auth_callback(username: str, password: str) -> Optional[cl.AppUser]:
   # Fetch the user matching username from your database
   # and compare the hashed password with the value stored in the database
   if (username, password) == ("admin", "admin"):
-    return cl.AppUser(username="admin", role="ADMIN", provider="credentials")
+    return cl.AppUser(username="trashfr", role="ADMIN", provider="credentials", image="./public/favicon.png")
   else:
     return None
 
@@ -84,7 +84,9 @@ async def on_message(message: cl.Message):
     for query in queries:
         source = await get_results(query)
         sources += [{'url':website['href'], 'title':website['title']} for website in source]
-        msg_sources.content += f'## **{query.capitalize()}**\n'+'\n'.join(f' - [{website['title']}]({website['href']})' + '\n\n' for website in source)
+        msg_sources.content += f'## **{query.capitalize()}**\n'
+        msg_sources.content += '\n'.join(f' - [{website["title"]}]({website["href"]})' for website in source)
+
         await msg_sources.update()
 
     await cl.Avatar(name='Web Search', url='./public/web.png').send()
