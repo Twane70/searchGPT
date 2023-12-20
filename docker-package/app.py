@@ -71,7 +71,7 @@ async def on_message(message: cl.Message):
     # runnable = cl.user_session.get("runnable")  # type: Runnable
     main_query = message.content
 
-    msg_sources = cl.Message(content='Searching...', author='Search', disable_human_feedback=True)
+    msg_sources = cl.Message(content='', author='Search', disable_human_feedback=True)
     await msg_sources.send()
 
     role = agent_chain.invoke({'question': main_query})
